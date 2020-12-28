@@ -30,6 +30,32 @@ impl TryFrom<&str> for Color {
     }
 }
 
+#[derive(Debug)]
+enum Tier {
+    First,
+    Second,
+    Third,
+    Fourth,
+}
+
+impl TryFrom<&str> for Tier {
+    type Error = NotationError;
+
+    fn try_from(notation: &str) -> Result<Self, Self::Error> {
+        if notation.len() != 1 {
+            Err(NotationError)
+        } else {
+            match notation.chars().next() {
+                Some('1') => Ok(Tier::First),
+                Some('2') => Ok(Tier::Second),
+                Some('3') => Ok(Tier::Third),
+                Some('4') => Ok(Tier::Fourth),
+                _ => Err(NotationError),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -47,6 +73,17 @@ mod tests {
         assert!(Color::try_from("x").is_err());
         assert!(Color::try_from("sdfsf").is_err());
         assert!(Color::try_from("red").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn tier_notation() -> Result<(), NotationError> {
+        Tier::try_from("1")?;
+        Tier::try_from("2")?;
+        Tier::try_from("3")?;
+        Tier::try_from("4")?;
+        assert!(Tier::try_from("5").is_err());
+        assert!(Tier::try_from("sdfsf").is_err());
         Ok(())
     }
 }
