@@ -4,6 +4,7 @@ use std::convert::TryFrom;
 use strum::EnumIter;
 
 pub mod error;
+mod pattern;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum Color {
@@ -114,7 +115,7 @@ impl TryFrom<&str> for Stack {
 
 #[allow(non_camel_case_types)]
 #[derive(EnumIter, Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum Position {
+pub enum Position {
     i1,
     i2,
     i3,
@@ -223,29 +224,29 @@ impl Position {
         }
     }
 
-    fn up(&self) -> Result<Position, Error> {
+    pub fn up(&self) -> Result<Position, Error> {
         let (x, y) = self.to_coords();
         Position::from_coords(x, y + 1)
     }
 
-    fn down(&self) -> Result<Position, Error> {
+    pub fn down(&self) -> Result<Position, Error> {
         let (x, y) = self.to_coords();
         Position::from_coords(x, y - 1)
     }
 
-    fn left(&self) -> Result<Position, Error> {
+    pub fn left(&self) -> Result<Position, Error> {
         let (x, y) = self.to_coords();
         Position::from_coords(x - 1, y)
     }
 
-    fn right(&self) -> Result<Position, Error> {
+    pub fn right(&self) -> Result<Position, Error> {
         let (x, y) = self.to_coords();
         Position::from_coords(x + 1, y)
     }
 }
 
 #[derive(Debug)]
-struct Board {
+pub struct Board {
     slots: HashMap<Position, Stack>,
 }
 
@@ -274,7 +275,7 @@ impl Board {
         }
     }
 
-    fn play(&mut self, notation: &str) -> Result<(), Error> {
+    pub fn play(&mut self, notation: &str) -> Result<(), Error> {
         let (position, stack) = Board::interpret(notation)?;
         self.place(position, stack)
     }
