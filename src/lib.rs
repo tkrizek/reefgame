@@ -17,14 +17,14 @@ impl TryFrom<&str> for Color {
 
     fn try_from(notation: &str) -> Result<Self, Self::Error> {
         if notation.len() != 1 {
-            Err(Error::NotationError)
+            Err(Error::InvalidNotation)
         } else {
             match notation.chars().next() {
                 Some('r') => Ok(Color::Red),
                 Some('g') => Ok(Color::Green),
                 Some('b') => Ok(Color::Blue),
                 Some('y') => Ok(Color::Yellow),
-                _ => Err(Error::NotationError),
+                _ => Err(Error::InvalidNotation),
             }
         }
     }
@@ -43,14 +43,14 @@ impl TryFrom<&str> for Tier {
 
     fn try_from(notation: &str) -> Result<Self, Self::Error> {
         if notation.len() != 1 {
-            Err(Error::NotationError)
+            Err(Error::InvalidNotation)
         } else {
             match notation.chars().next() {
                 Some('1') => Ok(Tier::First),
                 Some('2') => Ok(Tier::Second),
                 Some('3') => Ok(Tier::Third),
                 Some('4') => Ok(Tier::Fourth),
-                _ => Err(Error::NotationError),
+                _ => Err(Error::InvalidNotation),
             }
         }
     }
@@ -101,7 +101,7 @@ impl TryFrom<&str> for Stack {
 
     fn try_from(notation: &str) -> Result<Self, Self::Error> {
         if notation.len() != 2 {
-            Err(Error::NotationError)
+            Err(Error::InvalidNotation)
         } else {
             Ok(Stack {
                 color: Color::try_from(&notation[0..1])?,
@@ -153,7 +153,51 @@ impl TryFrom<&str> for Position {
             "l2" => Ok(Position::l2),
             "l3" => Ok(Position::l3),
             "l4" => Ok(Position::l4),
-            _ => Err(Error::NotationError),
+            _ => Err(Error::InvalidNotation),
+        }
+    }
+}
+
+impl Position {
+    fn from_coords(x: u8, y: u8) -> Result<Position, Error> {
+        match x {
+            1 => {
+                match y {
+                    1 => Ok(Position::i1),
+                    2 => Ok(Position::i2),
+                    3 => Ok(Position::i3),
+                    4 => Ok(Position::i4),
+                    _ => Err(Error::OutOfBounds),
+                }
+            },
+            2 => {
+                match y {
+                    1 => Ok(Position::j1),
+                    2 => Ok(Position::j2),
+                    3 => Ok(Position::j3),
+                    4 => Ok(Position::j4),
+                    _ => Err(Error::OutOfBounds),
+                }
+            },
+            3 => {
+                match y {
+                    1 => Ok(Position::k1),
+                    2 => Ok(Position::k2),
+                    3 => Ok(Position::k3),
+                    4 => Ok(Position::k4),
+                    _ => Err(Error::OutOfBounds),
+                }
+            },
+            4 => {
+                match y {
+                    1 => Ok(Position::l1),
+                    2 => Ok(Position::l2),
+                    3 => Ok(Position::l3),
+                    4 => Ok(Position::l4),
+                    _ => Err(Error::OutOfBounds),
+                }
+            },
+            _ => Err(Error::OutOfBounds),
         }
     }
 }
@@ -172,7 +216,7 @@ impl Board {
 
     fn interpret(notation: &str) -> Result<(Position, Stack), Error> {
         if notation.len() != 4 {
-            return Err(Error::NotationError);
+            return Err(Error::InvalidNotation);
         }
         let position = Position::try_from(&notation[2..])?;
         let stack = Stack::try_from(&notation[0..2])?;
@@ -184,7 +228,7 @@ impl Board {
             self.slots.insert(position, stack);
             Ok(())
         } else {
-            Err(Error::MoveError)
+            Err(Error::IllegalMove)
         }
     }
 
@@ -204,7 +248,7 @@ impl TryFrom<&str> for Board {
             .try_fold(&mut board, |board, notation: &str| {
                 let (position, stack) = Board::interpret(notation)?;
                 if board.slots.contains_key(&position) {
-                    Err(Error::NotationError)
+                    Err(Error::InvalidNotation)
                 } else {
                     board.slots.insert(position, stack);
                     Ok(board)
@@ -292,6 +336,20 @@ mod tests {
         assert!(Position::try_from("I2").is_err());
         assert!(Position::try_from("dafd").is_err());
         assert!(Position::try_from("x").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn position_coords() -> Result<(), Error> {
+        assert_eq!(Position::from_coords(1, 1)?, Position::i1);
+        assert_eq!(Position::from_coords(2, 1)?, Position::j1);
+        assert_eq!(Position::from_coords(3, 1)?, Position::k1);
+        assert_eq!(Position::from_coords(4, 1)?, Position::l1);
+        assert_eq!(Position::from_coords(2, 2)?, Position::j2);
+        assert_eq!(Position::from_coords(2, 3)?, Position::j3);
+        assert_eq!(Position::from_coords(2, 4)?, Position::j4);
+        assert!(Position::from_coords(5, 1).is_err());
+        assert!(Position::from_coords(1, 0).is_err());
         Ok(())
     }
 
