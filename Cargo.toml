@@ -1,5 +1,5 @@
 [package]
-name = "reef"
+name = "reefgame"
 version = "0.1.0"
 authors = ["Tomas Krizek <tomas.krizek@mailbox.org>"]
 edition = "2018"
