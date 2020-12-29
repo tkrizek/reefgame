@@ -1,6 +1,7 @@
 use crate::error::Error;
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use strum::EnumIter;
 
 pub mod error;
 
@@ -112,7 +113,7 @@ impl TryFrom<&str> for Stack {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(EnumIter, Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum Position {
     i1,
     i2,
@@ -199,6 +200,47 @@ impl Position {
             },
             _ => Err(Error::OutOfBounds),
         }
+    }
+
+    fn to_coords(&self) -> (u8, u8) {
+        match self {
+            Position::i1 => (1, 1),
+            Position::i2 => (1, 2),
+            Position::i3 => (1, 3),
+            Position::i4 => (1, 4),
+            Position::j1 => (2, 1),
+            Position::j2 => (2, 2),
+            Position::j3 => (2, 3),
+            Position::j4 => (2, 4),
+            Position::k1 => (3, 1),
+            Position::k2 => (3, 2),
+            Position::k3 => (3, 3),
+            Position::k4 => (3, 4),
+            Position::l1 => (4, 1),
+            Position::l2 => (4, 2),
+            Position::l3 => (4, 3),
+            Position::l4 => (4, 4),
+        }
+    }
+
+    fn up(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x, y + 1)
+    }
+
+    fn down(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x, y - 1)
+    }
+
+    fn left(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x - 1, y)
+    }
+
+    fn right(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x + 1, y)
     }
 }
 
@@ -350,6 +392,14 @@ mod tests {
         assert_eq!(Position::from_coords(2, 4)?, Position::j4);
         assert!(Position::from_coords(5, 1).is_err());
         assert!(Position::from_coords(1, 0).is_err());
+        assert_eq!(Position::k2.up()?, Position::k3);
+        assert!(Position::k4.up().is_err());
+        assert_eq!(Position::k2.down()?, Position::k1);
+        assert!(Position::k1.down().is_err());
+        assert_eq!(Position::k2.left()?, Position::j2);
+        assert!(Position::i2.left().is_err());
+        assert_eq!(Position::k2.right()?, Position::l2);
+        assert!(Position::l4.right().is_err());
         Ok(())
     }
 
