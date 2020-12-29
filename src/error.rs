@@ -1,24 +1,18 @@
-use std::error::Error;
 use std::fmt;
 
 #[derive(Debug)]
-pub struct NotationError;
-
-impl Error for NotationError { }
-
-impl fmt::Display for NotationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Invalid notation")
-    }
+pub enum Error {
+    NotationError,
+    MoveError,
 }
 
-#[derive(Debug)]
-pub struct TierError;
+impl std::error::Error for Error {}
 
-impl Error for TierError { }
-
-impl fmt::Display for TierError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Invalid tier")
+        match *self {
+            Error::NotationError => write!(f, "Failed to parse notation"),
+            Error::MoveError => write!(f, "Illegal player move"),
+        }
     }
 }
