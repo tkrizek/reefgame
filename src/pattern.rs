@@ -160,6 +160,50 @@ impl Pattern for Diagonal {
     }
 }
 
+struct Line {
+    color: Color,
+}
+
+impl Line {
+    fn new(color: Color) -> Line {
+        Line {
+            color: color,
+        }
+    }
+
+    // TODO is common with (at least) Diagonal - refactor?
+    // possibly vector of positions into a match? universal for shape matching
+    fn fit_line(&self, p1: &Position, p2: &Position, p3: &Position, board: &Board) -> Option<Mask> {
+        let c1 = self.color.fit_at(p1, board);
+        let c2 = self.color.fit_at(p2, board);
+        let c3 = self.color.fit_at(p3, board);
+        if let (Some(m1), Some(m2), Some(m3)) = (c1, c2, c3) {
+            Some(&(&m1 | &m2) | &m3)
+        } else {
+            None
+        }
+    }
+}
+
+impl Pattern for Line {
+    fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.right() {
+            if let Some(pos3) = pos2.right() {
+                return self.fit_line(pos1, &pos2, &pos3, board);
+            }
+        }
+        None
+    }
+
+    fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.up() {
+            if let Some(pos3) = pos2.up() {
+                return self.fit_line(pos1, &pos2, &pos3, board);
+            }
+        }
+        None
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -260,6 +304,22 @@ mod tests {
         ]);
         let ydiag = Diagonal::new(Color::Yellow);
         assert_eq!(ydiag.fit(&board).len(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn line_fit() -> Result<(), Error> {
+        // B1 G1 R1
+        // R2 R3 R1
+        // R2 R4 R3
+        //    B3 R2 B2
+        let board = Board::try_from("r2i2 r2i3 b1i4 b3j1 r4j2 r3j3 g1j4 r2k1 r3k2 r1k3 r1k4 b2l1")?;
+        assert_eq!(Line::new(Color::Red).fit(&board), vec![
+            [Position::i2, Position::j2, Position::k2].iter().cloned().collect(),
+            [Position::i3, Position::j3, Position::k3].iter().cloned().collect(),
+            [Position::k1, Position::k2, Position::k3].iter().cloned().collect(),
+            [Position::k2, Position::k3, Position::k4].iter().cloned().collect(),
+        ]);
         Ok(())
     }
 }
