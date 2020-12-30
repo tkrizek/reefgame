@@ -14,11 +14,29 @@ trait Pattern {
             if let Some(mask) = self.fit_at(&position, &board) {
                 fits.push(mask);
             }
+            if let Some(mask) = self.fit_at_90deg(&position, &board) {
+                fits.push(mask);
+            }
+            if let Some(mask) = self.fit_at_180deg(&position, &board) {
+                fits.push(mask);
+            }
+            if let Some(mask) = self.fit_at_270deg(&position, &board) {
+                fits.push(mask);
+            }
         }
         fits
     }
 
     fn fit_at(&self, positon: &Position, board: &Board) -> Option<Mask>;
+    fn fit_at_90deg(&self, _position: &Position, _board: &Board) -> Option<Mask> {
+        None
+    }
+    fn fit_at_180deg(&self, _position: &Position, _board: &Board) -> Option<Mask> {
+        None
+    }
+    fn fit_at_270deg(&self, _position: &Position, _board: &Board) -> Option<Mask> {
+        None
+    }
 }
 
 impl Pattern for Color {
@@ -48,6 +66,52 @@ impl Pattern for Stack {
         if let Some(stack) = board.slots.get(&position) {
             if stack == self {
                 return Some([*position].iter().cloned().collect());
+            }
+        }
+        None
+    }
+}
+
+struct AdjacentColors {
+    first: Color,
+    second: Color,
+}
+
+impl AdjacentColors {
+    fn new(first: Color, second: Color) -> AdjacentColors {
+        AdjacentColors {
+            first: first,
+            second: second,
+        }
+    }
+}
+
+impl Pattern for AdjacentColors {
+    fn fit_at(&self, position: &Position, board: &Board) -> Option<Mask> {
+        if let Some(position2) = position.right().ok() {
+            let stack1 = board.slots.get(&position);
+            let stack2 = board.slots.get(&position2);
+            if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
+                let fit = stack1.color == self.first && stack2.color == self.second;
+                let fit_180deg = stack1.color == self.second && stack2.color == self.first;
+                if fit || fit_180deg {
+                    return Some([*position, position2].iter().cloned().collect());
+                }
+            }
+        }
+        None
+    }
+
+    fn fit_at_90deg(&self, position1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(position2) = position1.up().ok() {
+            let stack1 = board.slots.get(&position1);
+            let stack2 = board.slots.get(&position2);
+            if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
+                let fit = stack1.color == self.first && stack2.color == self.second;
+                let fit_270deg = stack1.color == self.second && stack2.color == self.first;
+                if fit || fit_270deg {
+                    return Some([*position1, position2].iter().cloned().collect());
+                }
             }
         }
         None
@@ -113,6 +177,26 @@ mod tests {
             [Position::i2].iter().cloned().collect(),
         ]);
         assert_eq!(Stack::try_from("b2")?.fit(&board).len(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn adjacent_colors_fit() -> Result<(), Error> {
+        //    G1 Y1 Y2
+        // R2 B3
+        // B2 G4 B3 R2
+        // G1 B3 Y2
+        let board = Board::try_from("g1i1 b2i2 r2i3 b3j1 g4j2 b3j3 g1j4 y2k1 b3k2 y1k4 r2l2 y2l4")?;
+        let gb = AdjacentColors::new(Color::Green, Color::Blue);
+        assert_eq!(gb.fit(&board), vec![
+            [Position::i1, Position::j1].iter().cloned().collect(),
+            [Position::i1, Position::i2].iter().cloned().collect(),
+            [Position::i2, Position::j2].iter().cloned().collect(),
+            [Position::j1, Position::j2].iter().cloned().collect(),
+            [Position::j2, Position::k2].iter().cloned().collect(),
+            [Position::j2, Position::j3].iter().cloned().collect(),
+            [Position::j3, Position::j4].iter().cloned().collect(),
+        ]);
         Ok(())
     }
 }
