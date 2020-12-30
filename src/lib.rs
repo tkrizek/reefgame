@@ -243,6 +243,26 @@ impl Position {
         let (x, y) = self.to_coords();
         Position::from_coords(x + 1, y)
     }
+
+    pub fn upleft(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x - 1, y + 1)
+    }
+
+    pub fn downleft(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x - 1, y - 1)
+    }
+
+    pub fn upright(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x + 1, y + 1)
+    }
+
+    pub fn downright(&self) -> Result<Position, Error> {
+        let (x, y) = self.to_coords();
+        Position::from_coords(x + 1, y - 1)
+    }
 }
 
 #[derive(Debug)]
@@ -401,6 +421,14 @@ mod tests {
         assert!(Position::i2.left().is_err());
         assert_eq!(Position::k2.right()?, Position::l2);
         assert!(Position::l4.right().is_err());
+        assert_eq!(Position::k2.upleft()?, Position::j3);
+        assert!(Position::i3.upleft().is_err());
+        assert_eq!(Position::k2.downleft()?, Position::j1);
+        assert!(Position::l1.downleft().is_err());
+        assert_eq!(Position::k2.upright()?, Position::l3);
+        assert!(Position::l3.upright().is_err());
+        assert_eq!(Position::k2.downright()?, Position::l1);
+        assert!(Position::j1.downright().is_err());
         Ok(())
     }
 

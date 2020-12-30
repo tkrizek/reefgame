@@ -117,6 +117,49 @@ impl Pattern for AdjacentColors {
     }
 }
 
+struct Diagonal {
+    color: Color,
+}
+
+impl Diagonal {
+    fn new(color: Color) -> Diagonal {
+        Diagonal {
+            color: color,
+        }
+    }
+
+    fn fit_diag(&self, p1: &Position, p2: &Position, p3: &Position, board: &Board) -> Option<Mask> {
+        let c1 = self.color.fit_at(p1, board);
+        let c2 = self.color.fit_at(p2, board);
+        let c3 = self.color.fit_at(p3, board);
+        if let (Some(m1), Some(m2), Some(m3)) = (c1, c2, c3) {
+            Some(&(&m1 | &m2) | &m3)
+        } else {
+            None
+        }
+    }
+}
+
+impl Pattern for Diagonal {
+    fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.downright().ok() {
+            if let Some(pos3) = pos2.downright().ok() {
+                return self.fit_diag(pos1, &pos2, &pos3, board);
+            }
+        }
+        None
+    }
+
+    fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.upright().ok() {
+            if let Some(pos3) = pos2.upright().ok() {
+                return self.fit_diag(pos1, &pos2, &pos3, board);
+            }
+        }
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,6 +239,27 @@ mod tests {
             [Position::j2, Position::j3].iter().cloned().collect(),
             [Position::j3, Position::j4].iter().cloned().collect(),
         ]);
+        Ok(())
+    }
+
+    #[test]
+    fn diagonal_fit() -> Result<(), Error> {
+        //    G1 R1
+        // R2 R3    B1
+        // R2 R4 B3
+        //    B3 R2 B2
+        let board = Board::try_from("r2i2 r2i3 b3j1 r4j2 r3j3 g1j4 r2k1 b3k2 r1k4 b2l1 b1l3")?;
+        let rdiag = Diagonal::new(Color::Red);
+        assert_eq!(rdiag.fit(&board), vec![
+            [Position::i2, Position::j3, Position::k4].iter().cloned().collect(),
+            [Position::i3, Position::j2, Position::k1].iter().cloned().collect(),
+        ]);
+        let bdiag = Diagonal::new(Color::Blue);
+        assert_eq!(bdiag.fit(&board), vec![
+            [Position::j1, Position::k2, Position::l3].iter().cloned().collect(),
+        ]);
+        let ydiag = Diagonal::new(Color::Yellow);
+        assert_eq!(ydiag.fit(&board).len(), 0);
         Ok(())
     }
 }
