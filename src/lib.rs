@@ -224,44 +224,44 @@ impl Position {
         }
     }
 
-    pub fn up(&self) -> Result<Position, Error> {
+    pub fn up(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x, y + 1)
+        Position::from_coords(x, y + 1).ok()
     }
 
-    pub fn down(&self) -> Result<Position, Error> {
+    pub fn down(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x, y - 1)
+        Position::from_coords(x, y - 1).ok()
     }
 
-    pub fn left(&self) -> Result<Position, Error> {
+    pub fn left(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x - 1, y)
+        Position::from_coords(x - 1, y).ok()
     }
 
-    pub fn right(&self) -> Result<Position, Error> {
+    pub fn right(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x + 1, y)
+        Position::from_coords(x + 1, y).ok()
     }
 
-    pub fn upleft(&self) -> Result<Position, Error> {
+    pub fn upleft(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x - 1, y + 1)
+        Position::from_coords(x - 1, y + 1).ok()
     }
 
-    pub fn downleft(&self) -> Result<Position, Error> {
+    pub fn downleft(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x - 1, y - 1)
+        Position::from_coords(x - 1, y - 1).ok()
     }
 
-    pub fn upright(&self) -> Result<Position, Error> {
+    pub fn upright(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x + 1, y + 1)
+        Position::from_coords(x + 1, y + 1).ok()
     }
 
-    pub fn downright(&self) -> Result<Position, Error> {
+    pub fn downright(&self) -> Option<Position> {
         let (x, y) = self.to_coords();
-        Position::from_coords(x + 1, y - 1)
+        Position::from_coords(x + 1, y - 1).ok()
     }
 }
 
@@ -413,22 +413,22 @@ mod tests {
         assert_eq!(Position::from_coords(2, 4)?, Position::j4);
         assert!(Position::from_coords(5, 1).is_err());
         assert!(Position::from_coords(1, 0).is_err());
-        assert_eq!(Position::k2.up()?, Position::k3);
-        assert!(Position::k4.up().is_err());
-        assert_eq!(Position::k2.down()?, Position::k1);
-        assert!(Position::k1.down().is_err());
-        assert_eq!(Position::k2.left()?, Position::j2);
-        assert!(Position::i2.left().is_err());
-        assert_eq!(Position::k2.right()?, Position::l2);
-        assert!(Position::l4.right().is_err());
-        assert_eq!(Position::k2.upleft()?, Position::j3);
-        assert!(Position::i3.upleft().is_err());
-        assert_eq!(Position::k2.downleft()?, Position::j1);
-        assert!(Position::l1.downleft().is_err());
-        assert_eq!(Position::k2.upright()?, Position::l3);
-        assert!(Position::l3.upright().is_err());
-        assert_eq!(Position::k2.downright()?, Position::l1);
-        assert!(Position::j1.downright().is_err());
+        assert_eq!(Position::k2.up(), Some(Position::k3));
+        assert_eq!(Position::k4.up(), None);
+        assert_eq!(Position::k2.down(), Some(Position::k1));
+        assert_eq!(Position::k1.down(), None);
+        assert_eq!(Position::k2.left(), Some(Position::j2));
+        assert_eq!(Position::i2.left(), None);
+        assert_eq!(Position::k2.right(), Some(Position::l2));
+        assert_eq!(Position::l4.right(), None);
+        assert_eq!(Position::k2.upleft(), Some(Position::j3));
+        assert_eq!(Position::i3.upleft(), None);
+        assert_eq!(Position::k2.downleft(), Some(Position::j1));
+        assert_eq!(Position::l1.downleft(), None);
+        assert_eq!(Position::k2.upright(), Some(Position::l3));
+        assert_eq!(Position::l3.upright(), None);
+        assert_eq!(Position::k2.downright(), Some(Position::l1));
+        assert_eq!(Position::j1.downright(), None);
         Ok(())
     }
 

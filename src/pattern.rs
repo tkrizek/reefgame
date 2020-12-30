@@ -101,7 +101,7 @@ impl AdjacentColors {
 
 impl Pattern for AdjacentColors {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
-        if let Some(pos2) = pos1.right().ok() {
+        if let Some(pos2) = pos1.right() {
             self.fit_colors(pos1, &pos2, &board)
         } else {
             None
@@ -109,7 +109,7 @@ impl Pattern for AdjacentColors {
     }
 
     fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
-        if let Some(pos2) = pos1.up().ok() {
+        if let Some(pos2) = pos1.up() {
             self.fit_colors(pos1, &pos2, &board)
         } else {
             None
@@ -142,8 +142,8 @@ impl Diagonal {
 
 impl Pattern for Diagonal {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
-        if let Some(pos2) = pos1.downright().ok() {
-            if let Some(pos3) = pos2.downright().ok() {
+        if let Some(pos2) = pos1.downright() {
+            if let Some(pos3) = pos2.downright() {
                 return self.fit_diag(pos1, &pos2, &pos3, board);
             }
         }
@@ -151,8 +151,8 @@ impl Pattern for Diagonal {
     }
 
     fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
-        if let Some(pos2) = pos1.upright().ok() {
-            if let Some(pos3) = pos2.upright().ok() {
+        if let Some(pos2) = pos1.upright() {
+            if let Some(pos3) = pos2.upright() {
                 return self.fit_diag(pos1, &pos2, &pos3, board);
             }
         }
