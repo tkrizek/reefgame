@@ -84,37 +84,36 @@ impl AdjacentColors {
             second: second,
         }
     }
-}
 
-impl Pattern for AdjacentColors {
-    fn fit_at(&self, position: &Position, board: &Board) -> Option<Mask> {
-        if let Some(position2) = position.right().ok() {
-            let stack1 = board.slots.get(&position);
-            let stack2 = board.slots.get(&position2);
-            if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
-                let fit = stack1.color == self.first && stack2.color == self.second;
-                let fit_180deg = stack1.color == self.second && stack2.color == self.first;
-                if fit || fit_180deg {
-                    return Some([*position, position2].iter().cloned().collect());
-                }
+    fn fit_colors(&self, pos1: &Position, pos2: &Position, board: &Board) -> Option<Mask> {
+        let stack1 = board.slots.get(&pos1);
+        let stack2 = board.slots.get(&pos2);
+        if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
+            let fit = stack1.color == self.first && stack2.color == self.second;
+            let fit_inv = stack1.color == self.second && stack2.color == self.first;
+            if fit || fit_inv {
+                return Some([*pos1, *pos2].iter().cloned().collect());
             }
         }
         None
     }
+}
 
-    fn fit_at_90deg(&self, position1: &Position, board: &Board) -> Option<Mask> {
-        if let Some(position2) = position1.up().ok() {
-            let stack1 = board.slots.get(&position1);
-            let stack2 = board.slots.get(&position2);
-            if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
-                let fit = stack1.color == self.first && stack2.color == self.second;
-                let fit_270deg = stack1.color == self.second && stack2.color == self.first;
-                if fit || fit_270deg {
-                    return Some([*position1, position2].iter().cloned().collect());
-                }
-            }
+impl Pattern for AdjacentColors {
+    fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.right().ok() {
+            self.fit_colors(pos1, &pos2, &board)
+        } else {
+            None
         }
-        None
+    }
+
+    fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.up().ok() {
+            self.fit_colors(pos1, &pos2, &board)
+        } else {
+            None
+        }
     }
 }
 
