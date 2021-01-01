@@ -266,6 +266,43 @@ impl Pattern for Corner {
     }
 }
 
+struct Square {
+    color: Color,
+}
+
+impl Square {
+    fn new(color: Color) -> Square {
+        Square {
+            color: color,
+        }
+    }
+
+    fn fit_square(&self, p1: &Position, p2: &Position, p3: &Position, p4: &Position, board: &Board) -> Option<Mask> {
+        let c1 = self.color.fit_at(p1, board);
+        let c2 = self.color.fit_at(p2, board);
+        let c3 = self.color.fit_at(p3, board);
+        let c4 = self.color.fit_at(p4, board);
+        if let (Some(m1), Some(m2), Some(m3), Some(m4)) = (c1, c2, c3, c4) {
+            Some(&(&(&m1 | &m2) | &m3) | &m4)
+        } else {
+            None
+        }
+    }
+}
+
+impl Pattern for Square {
+    fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.up() {
+            if let Some(pos3) = pos2.right() {
+                if let Some(pos4) = pos1.right() {
+                    return self.fit_square(pos1, &pos2, &pos3, &pos4, board);
+                }
+            }
+        }
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -404,6 +441,31 @@ mod tests {
             btreeset!{Position::j3, Position::k3, Position::j2},
             btreeset!{Position::k3, Position::j3, Position::k4},
         });
+        assert_eq!(Corner::new(Color::Blue).fit(&board), btreeset!{
+            btreeset!{Position::j1, Position::k1, Position::k2},
+            btreeset!{Position::k1, Position::k2, Position::l1},
+        });
+        assert_eq!(Corner::new(Color::Green).fit(&board).len(), 0);
+        assert_eq!(Corner::new(Color::Yellow).fit(&board).len(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn square_fit() -> Result<(), Error> {
+        // r1 r1 r1 r3
+        // r2 r3 r1 y4
+        // r2 b4 b3
+        //    b3 b2 b2
+        let board = Board::try_from("r2i2 r2i3 r1i4 b3j1 b4j2 r3j3 r1j4 b2k1 b3k2 r1k3 r1k4 b2l1 y4l3 r3l4")?;
+        assert_eq!(Square::new(Color::Red).fit(&board), btreeset!{
+            btreeset!{Position::i3, Position::i4, Position::j3, Position::j4},
+            btreeset!{Position::j3, Position::j4, Position::k3, Position::k4},
+        });
+        assert_eq!(Square::new(Color::Blue).fit(&board), btreeset!{
+            btreeset!{Position::j1, Position::j2, Position::k1, Position::k2},
+        });
+        assert_eq!(Square::new(Color::Green).fit(&board).len(), 0);
+        assert_eq!(Square::new(Color::Yellow).fit(&board).len(), 0);
         Ok(())
     }
 }
