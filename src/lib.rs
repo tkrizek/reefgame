@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use strum::EnumIter;
 
+#[macro_use] extern crate maplit;
+
 pub mod error;
 mod pattern;
 
@@ -114,7 +116,7 @@ impl TryFrom<&str> for Stack {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(EnumIter, Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(EnumIter, Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Position {
     i1,
     i2,
