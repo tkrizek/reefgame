@@ -72,25 +72,15 @@ impl Pattern for Stack {
     }
 }
 
-struct AdjacentColors {
-    first: Color,
-    second: Color,
-}
+struct AdjacentColors(Color, Color);
 
 impl AdjacentColors {
-    fn new(first: Color, second: Color) -> AdjacentColors {
-        AdjacentColors {
-            first: first,
-            second: second,
-        }
-    }
-
     fn fit_colors(&self, pos1: &Position, pos2: &Position, board: &Board) -> Option<Mask> {
         let stack1 = board.slots.get(&pos1);
         let stack2 = board.slots.get(&pos2);
         if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
-            let fit = stack1.color == self.first && stack2.color == self.second;
-            let fit_inv = stack1.color == self.second && stack2.color == self.first;
+            let fit = stack1.color == self.0 && stack2.color == self.1;
+            let fit_inv = stack1.color == self.1 && stack2.color == self.0;
             if fit || fit_inv {
                 return Some(btreeset!{*pos1, *pos2});
             }
@@ -117,34 +107,29 @@ impl Pattern for AdjacentColors {
     }
 }
 
-struct Diagonal {
-    color: Color,
+trait Shape {
+    fn fit_mask(&self, mask: Mask, board: &Board) -> Option<Mask>;
 }
 
-impl Diagonal {
-    fn new(color: Color) -> Diagonal {
-        Diagonal {
-            color: color,
+impl Shape for Color {
+    fn fit_mask(&self, mask: Mask, board: &Board) -> Option<Mask> {
+        for position in mask.iter() {
+            if self.fit_at(position, board) == None {
+                return None;
+            }
         }
-    }
-
-    fn fit_diag(&self, p1: &Position, p2: &Position, p3: &Position, board: &Board) -> Option<Mask> {
-        let c1 = self.color.fit_at(p1, board);
-        let c2 = self.color.fit_at(p2, board);
-        let c3 = self.color.fit_at(p3, board);
-        if let (Some(m1), Some(m2), Some(m3)) = (c1, c2, c3) {
-            Some(&(&m1 | &m2) | &m3)
-        } else {
-            None
-        }
+        Some(mask)
     }
 }
+
+struct Diagonal(Color);
 
 impl Pattern for Diagonal {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.upright() {
             if let Some(pos3) = pos2.upright() {
-                return self.fit_diag(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
@@ -153,43 +138,22 @@ impl Pattern for Diagonal {
     fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.downright() {
             if let Some(pos3) = pos2.downright() {
-                return self.fit_diag(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
     }
 }
 
-struct Line {
-    color: Color,
-}
-
-impl Line {
-    fn new(color: Color) -> Line {
-        Line {
-            color: color,
-        }
-    }
-
-    // TODO is common with (at least) Diagonal - refactor?
-    // possibly vector of positions into a match? universal for shape matching
-    fn fit_line(&self, p1: &Position, p2: &Position, p3: &Position, board: &Board) -> Option<Mask> {
-        let c1 = self.color.fit_at(p1, board);
-        let c2 = self.color.fit_at(p2, board);
-        let c3 = self.color.fit_at(p3, board);
-        if let (Some(m1), Some(m2), Some(m3)) = (c1, c2, c3) {
-            Some(&(&m1 | &m2) | &m3)
-        } else {
-            None
-        }
-    }
-}
+struct Line(Color);
 
 impl Pattern for Line {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.right() {
             if let Some(pos3) = pos2.right() {
-                return self.fit_line(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
@@ -198,41 +162,22 @@ impl Pattern for Line {
     fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.up() {
             if let Some(pos3) = pos2.up() {
-                return self.fit_line(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
     }
 }
 
-struct Corner {
-    color: Color,
-}
-
-impl Corner {
-    fn new(color: Color) -> Corner {
-        Corner {
-            color: color,
-        }
-    }
-
-    fn fit_corner(&self, p1: &Position, p2: &Position, p3: &Position, board: &Board) -> Option<Mask> {
-        let c1 = self.color.fit_at(p1, board);
-        let c2 = self.color.fit_at(p2, board);
-        let c3 = self.color.fit_at(p3, board);
-        if let (Some(m1), Some(m2), Some(m3)) = (c1, c2, c3) {
-            Some(&(&m1 | &m2) | &m3)
-        } else {
-            None
-        }
-    }
-}
+struct Corner(Color);
 
 impl Pattern for Corner {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.up() {
             if let Some(pos3) = pos2.right() {
-                return self.fit_corner(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
@@ -241,7 +186,8 @@ impl Pattern for Corner {
     fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.left() {
             if let Some(pos3) = pos2.up() {
-                return self.fit_corner(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
@@ -250,7 +196,8 @@ impl Pattern for Corner {
     fn fit_at_180deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.down() {
             if let Some(pos3) = pos2.left() {
-                return self.fit_corner(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
@@ -259,43 +206,23 @@ impl Pattern for Corner {
     fn fit_at_270deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.right() {
             if let Some(pos3) = pos2.down() {
-                return self.fit_corner(pos1, &pos2, &pos3, board);
+                let mask = btreeset!{*pos1, pos2, pos3};
+                return self.0.fit_mask(mask, board);
             }
         }
         None
     }
 }
 
-struct Square {
-    color: Color,
-}
-
-impl Square {
-    fn new(color: Color) -> Square {
-        Square {
-            color: color,
-        }
-    }
-
-    fn fit_square(&self, p1: &Position, p2: &Position, p3: &Position, p4: &Position, board: &Board) -> Option<Mask> {
-        let c1 = self.color.fit_at(p1, board);
-        let c2 = self.color.fit_at(p2, board);
-        let c3 = self.color.fit_at(p3, board);
-        let c4 = self.color.fit_at(p4, board);
-        if let (Some(m1), Some(m2), Some(m3), Some(m4)) = (c1, c2, c3, c4) {
-            Some(&(&(&m1 | &m2) | &m3) | &m4)
-        } else {
-            None
-        }
-    }
-}
+struct Square(Color);
 
 impl Pattern for Square {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
         if let Some(pos2) = pos1.up() {
             if let Some(pos3) = pos2.right() {
                 if let Some(pos4) = pos1.right() {
-                    return self.fit_square(pos1, &pos2, &pos3, &pos4, board);
+                    let mask = btreeset!{*pos1, pos2, pos3, pos4};
+                    return self.0.fit_mask(mask, board);
                 }
             }
         }
@@ -372,7 +299,7 @@ mod tests {
         // b2 g4 b3 r2
         // g1 b3 y2
         let board = Board::try_from("g1i1 b2i2 r2i3 b3j1 g4j2 b3j3 g1j4 y2k1 b3k2 y1k4 r2l2 y2l4")?;
-        let gb = AdjacentColors::new(Color::Green, Color::Blue);
+        let gb = AdjacentColors(Color::Green, Color::Blue);
         assert_eq!(gb.fit(&board), btreeset!{
             btreeset!{Position::i1, Position::j1},
             btreeset!{Position::i1, Position::i2},
@@ -392,16 +319,16 @@ mod tests {
         // r2 r4 b3
         //    b3 r2 b2
         let board = Board::try_from("r2i2 r2i3 b3j1 r4j2 r3j3 g1j4 r2k1 b3k2 r1k4 b2l1 b1l3")?;
-        let rdiag = Diagonal::new(Color::Red);
+        let rdiag = Diagonal(Color::Red);
         assert_eq!(rdiag.fit(&board), btreeset!{
             btreeset!{Position::i2, Position::j3, Position::k4},
             btreeset!{Position::i3, Position::j2, Position::k1},
         });
-        let bdiag = Diagonal::new(Color::Blue);
+        let bdiag = Diagonal(Color::Blue);
         assert_eq!(bdiag.fit(&board), btreeset!{
             btreeset!{Position::j1, Position::k2, Position::l3},
         });
-        let ydiag = Diagonal::new(Color::Yellow);
+        let ydiag = Diagonal(Color::Yellow);
         assert_eq!(ydiag.fit(&board).len(), 0);
         Ok(())
     }
@@ -413,15 +340,15 @@ mod tests {
         // r2 r4 r3
         //    b3 r2 b2
         let board = Board::try_from("r2i2 r2i3 b1i4 b3j1 r4j2 r3j3 g1j4 r2k1 r3k2 r1k3 r1k4 b2l1")?;
-        assert_eq!(Line::new(Color::Red).fit(&board), btreeset!{
+        assert_eq!(Line(Color::Red).fit(&board), btreeset!{
             btreeset!{Position::i2, Position::j2, Position::k2},
             btreeset!{Position::i3, Position::j3, Position::k3},
             btreeset!{Position::k1, Position::k2, Position::k3},
             btreeset!{Position::k2, Position::k3, Position::k4},
         });
-        assert_eq!(Line::new(Color::Green).fit(&board).len(), 0);
-        assert_eq!(Line::new(Color::Blue).fit(&board).len(), 0);
-        assert_eq!(Line::new(Color::Yellow).fit(&board).len(), 0);
+        assert_eq!(Line(Color::Green).fit(&board).len(), 0);
+        assert_eq!(Line(Color::Blue).fit(&board).len(), 0);
+        assert_eq!(Line(Color::Yellow).fit(&board).len(), 0);
         Ok(())
     }
 
@@ -432,7 +359,7 @@ mod tests {
         // r2 r4 b3
         //    b3 b2 b2
         let board = Board::try_from("r2i2 r2i3 r1i4 b3j1 r4j2 r3j3 g1j4 b2k1 b3k2 r1k3 r1k4 b2l1")?;
-        assert_eq!(Corner::new(Color::Red).fit(&board), btreeset!{
+        assert_eq!(Corner(Color::Red).fit(&board), btreeset!{
             btreeset!{Position::i2, Position::i3, Position::j2},
             btreeset!{Position::i3, Position::i4, Position::j3},
             btreeset!{Position::i3, Position::i2, Position::j3},
@@ -441,12 +368,12 @@ mod tests {
             btreeset!{Position::j3, Position::k3, Position::j2},
             btreeset!{Position::k3, Position::j3, Position::k4},
         });
-        assert_eq!(Corner::new(Color::Blue).fit(&board), btreeset!{
+        assert_eq!(Corner(Color::Blue).fit(&board), btreeset!{
             btreeset!{Position::j1, Position::k1, Position::k2},
             btreeset!{Position::k1, Position::k2, Position::l1},
         });
-        assert_eq!(Corner::new(Color::Green).fit(&board).len(), 0);
-        assert_eq!(Corner::new(Color::Yellow).fit(&board).len(), 0);
+        assert_eq!(Corner(Color::Green).fit(&board).len(), 0);
+        assert_eq!(Corner(Color::Yellow).fit(&board).len(), 0);
         Ok(())
     }
 
@@ -457,15 +384,15 @@ mod tests {
         // r2 b4 b3
         //    b3 b2 b2
         let board = Board::try_from("r2i2 r2i3 r1i4 b3j1 b4j2 r3j3 r1j4 b2k1 b3k2 r1k3 r1k4 b2l1 y4l3 r3l4")?;
-        assert_eq!(Square::new(Color::Red).fit(&board), btreeset!{
+        assert_eq!(Square(Color::Red).fit(&board), btreeset!{
             btreeset!{Position::i3, Position::i4, Position::j3, Position::j4},
             btreeset!{Position::j3, Position::j4, Position::k3, Position::k4},
         });
-        assert_eq!(Square::new(Color::Blue).fit(&board), btreeset!{
+        assert_eq!(Square(Color::Blue).fit(&board), btreeset!{
             btreeset!{Position::j1, Position::j2, Position::k1, Position::k2},
         });
-        assert_eq!(Square::new(Color::Green).fit(&board).len(), 0);
-        assert_eq!(Square::new(Color::Yellow).fit(&board).len(), 0);
+        assert_eq!(Square(Color::Green).fit(&board).len(), 0);
+        assert_eq!(Square(Color::Yellow).fit(&board).len(), 0);
         Ok(())
     }
 }
