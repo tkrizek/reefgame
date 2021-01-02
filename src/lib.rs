@@ -34,7 +34,7 @@ impl TryFrom<&str> for Color {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 enum Tier {
     First,
     Second,

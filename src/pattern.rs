@@ -142,6 +142,41 @@ impl Pattern for AdjacentT2 {
     }
 }
 
+struct DiagonalStacks(Color, Color);
+
+impl DiagonalStacks {
+    fn fit_diag_stacks(&self, pos1: &Position, pos2: &Position, board: &Board) -> Option<Mask> {
+        let stack1 = board.slots.get(&pos1);
+        let stack2 = board.slots.get(&pos2);
+        if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
+            let stack_fit = stack1.tier >= Tier::Second && stack2.tier >= Tier::Second;
+            let color_fit = stack1.color == self.0 && stack2.color == self.1;
+            let color_fit_inv = stack1.color == self.1 && stack2.color == self.0;
+            if stack_fit && (color_fit || color_fit_inv) {
+                return Some(btreeset!{*pos1, *pos2});
+            }
+        }
+        None
+    }
+}
+
+impl Pattern for DiagonalStacks {
+    fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.upright() {
+            self.fit_diag_stacks(pos1, &pos2, &board)
+        } else {
+            None
+        }
+    }
+
+    fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.downright() {
+            self.fit_diag_stacks(pos1, &pos2, &board)
+        } else {
+            None
+        }
+    }
+}
 
 trait Shape {
     fn fit_mask(&self, mask: Mask, board: &Board) -> Option<Mask>;
@@ -449,6 +484,30 @@ mod tests {
         });
         assert_eq!(AdjacentT2(Color::Green).fit(&board).len(), 0);
         assert_eq!(AdjacentT2(Color::Yellow).fit(&board).len(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn diagonal_stacks_fit() -> Result<(), Error> {
+        // r2 r2 r1 r3
+        // g2 g2 r1 y4
+        // g2 b4 g3
+        //    r3 b2 b2
+        let board = Board::try_from("g2i2 g2i3 r2i4 r3j1 b4j2 g2j3 r2j4 b2k1 g3k2 r1k3 r1k4 b2l1 y4l3 r3l4")?;
+        assert_eq!(DiagonalStacks(Color::Red, Color::Green).fit(&board), btreeset!{
+            btreeset!{Position::i2, Position::j1},
+            btreeset!{Position::i3, Position::j4},
+            btreeset!{Position::i4, Position::j3},
+            btreeset!{Position::j1, Position::k2},
+        });
+        assert_eq!(DiagonalStacks(Color::Blue, Color::Green).fit(&board), btreeset!{
+            btreeset!{Position::i3, Position::j2},
+            btreeset!{Position::k2, Position::l1},
+        });
+        assert_eq!(DiagonalStacks(Color::Yellow, Color::Green).fit(&board), btreeset!{
+            btreeset!{Position::k2, Position::l3},
+        });
+        assert_eq!(DiagonalStacks(Color::Yellow, Color::Red).fit(&board).len(), 0);
         Ok(())
     }
 }
