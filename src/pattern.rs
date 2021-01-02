@@ -27,7 +27,9 @@ trait Pattern {
         fits
     }
 
-    fn fit_at(&self, positon: &Position, board: &Board) -> Option<Mask>;
+    fn fit_at(&self, positon: &Position, board: &Board) -> Option<Mask> {
+        None
+    }
     fn fit_at_90deg(&self, _position: &Position, _board: &Board) -> Option<Mask> {
         None
     }
@@ -175,6 +177,70 @@ impl Pattern for DiagonalStacks {
         } else {
             None
         }
+    }
+}
+
+struct Surround(Color, Color);
+
+impl Pattern for Surround {
+    fn fit(&self, board: &Board) -> BTreeSet<Mask> {
+        let mut bases = Mask::new();
+        let mut highest = Tier::First;
+        for position in Position::iter() {
+            if let Some(stack) = board.slots.get(&position) {
+                if stack.color == self.0 {
+                    if stack.tier > highest {
+                        bases.clear();
+                        highest = stack.tier;
+                        bases.insert(position);
+                    } else if stack.tier == highest {
+                        bases.insert(position);
+                    }
+                }
+            }
+        }
+
+        let mut fits = BTreeSet::new();
+        for base in bases.iter() {
+            if let Some(mask) = self.fit_at(base, board) {
+                fits.insert(mask);
+            }
+        }
+        return fits;
+    }
+
+    fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(stack) = board.slots.get(pos1) {
+            if stack.color != self.0 {
+                return None;
+            }
+            let surrounding = btreeset!{
+                pos1.up(),
+                pos1.upleft(),
+                pos1.left(),
+                pos1.downleft(),
+                pos1.down(),
+                pos1.downright(),
+                pos1.right(),
+                pos1.upright(),
+            };
+            let mut fits = Mask::new();
+            for pos in surrounding.iter() {
+                if let Some(pos) = pos {
+                    if let Some(stack) = board.slots.get(&pos) {
+                        if stack.color == self.1 {
+                            fits.insert(*pos);
+                        }
+                    }
+                }
+            }
+            if fits.len() > 0 {
+                return Some(fits);
+            } else {
+                return None;
+            }
+        }
+        None
     }
 }
 
@@ -494,12 +560,14 @@ mod tests {
         // g2 b4 g3
         //    r3 b2 b2
         let board = Board::try_from("g2i2 g2i3 r2i4 r3j1 b4j2 g2j3 r2j4 b2k1 g3k2 r1k3 r1k4 b2l1 y4l3 r3l4")?;
-        assert_eq!(DiagonalStacks(Color::Red, Color::Green).fit(&board), btreeset!{
+        let red_green_set = btreeset!{
             btreeset!{Position::i2, Position::j1},
             btreeset!{Position::i3, Position::j4},
             btreeset!{Position::i4, Position::j3},
             btreeset!{Position::j1, Position::k2},
-        });
+        };
+        assert_eq!(DiagonalStacks(Color::Red, Color::Green).fit(&board), red_green_set);
+        assert_eq!(DiagonalStacks(Color::Green, Color::Red).fit(&board), red_green_set);
         assert_eq!(DiagonalStacks(Color::Blue, Color::Green).fit(&board), btreeset!{
             btreeset!{Position::i3, Position::j2},
             btreeset!{Position::k2, Position::l1},
@@ -508,6 +576,26 @@ mod tests {
             btreeset!{Position::k2, Position::l3},
         });
         assert_eq!(DiagonalStacks(Color::Yellow, Color::Red).fit(&board).len(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn surround_fit() -> Result<(), Error> {
+        // r2 r2 r1 r3
+        // g2 g2 r1 y4
+        // g2 b4 g3
+        // y4 r3 b2 y3
+        let board = Board::try_from("y4i1 g2i2 g2i3 r2i4 r3j1 b4j2 g2j3 r2j4 b2k1 g3k2 r1k3 r1k4 y3l1 y4l3 r3l4")?;
+        assert_eq!(Surround(Color::Red, Color::Green).fit(&board), btreeset!{
+            btreeset!{Position::i2, Position::k2},
+        });
+        assert_eq!(Surround(Color::Green, Color::Red).fit(&board), btreeset!{
+            btreeset!{Position::j1, Position::k3},
+        });
+        assert_eq!(Surround(Color::Yellow, Color::Red).fit(&board), btreeset!{
+            btreeset!{Position::j1},
+            btreeset!{Position::k3, Position::k4, Position::l4},
+        });
         Ok(())
     }
 }
