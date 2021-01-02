@@ -107,6 +107,42 @@ impl Pattern for AdjacentColors {
     }
 }
 
+struct AdjacentT2(Color);
+
+impl AdjacentT2 {
+    fn fit_t2_color(&self, pos1: &Position, pos2: &Position, board: &Board) -> Option<Mask> {
+        let stack1 = board.slots.get(&pos1);
+        let stack2 = board.slots.get(&pos2);
+        if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
+            let stack_fit = stack1.tier == Tier::Second && stack2.tier == Tier::Second;
+            let color_fit = stack1.color == self.0 && stack2.color == self.0;
+            if stack_fit && color_fit {
+                return Some(btreeset!{*pos1, *pos2});
+            }
+        }
+        None
+    }
+}
+
+impl Pattern for AdjacentT2 {
+    fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.right() {
+            self.fit_t2_color(pos1, &pos2, &board)
+        } else {
+            None
+        }
+    }
+
+    fn fit_at_90deg(&self, pos1: &Position, board: &Board) -> Option<Mask> {
+        if let Some(pos2) = pos1.up() {
+            self.fit_t2_color(pos1, &pos2, &board)
+        } else {
+            None
+        }
+    }
+}
+
+
 trait Shape {
     fn fit_mask(&self, mask: Mask, board: &Board) -> Option<Mask>;
 }
@@ -393,6 +429,26 @@ mod tests {
         });
         assert_eq!(Square(Color::Green).fit(&board).len(), 0);
         assert_eq!(Square(Color::Yellow).fit(&board).len(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn adjacent_t2_fit() -> Result<(), Error> {
+        // r1 r2 r1 r3
+        // r2 r2 r1 y4
+        // r2 b4 b3
+        //    b3 b2 b2
+        let board = Board::try_from("r2i2 r2i3 r1i4 b3j1 b4j2 r2j3 r2j4 b2k1 b3k2 r1k3 r1k4 b2l1 y4l3 r3l4")?;
+        assert_eq!(AdjacentT2(Color::Red).fit(&board), btreeset!{
+            btreeset!{Position::i2, Position::i3},
+            btreeset!{Position::i3, Position::j3},
+            btreeset!{Position::j3, Position::j4},
+        });
+        assert_eq!(AdjacentT2(Color::Blue).fit(&board), btreeset!{
+            btreeset!{Position::l1, Position::k1},
+        });
+        assert_eq!(AdjacentT2(Color::Green).fit(&board).len(), 0);
+        assert_eq!(AdjacentT2(Color::Yellow).fit(&board).len(), 0);
         Ok(())
     }
 }
