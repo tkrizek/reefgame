@@ -1,15 +1,12 @@
 use std::vec::Vec;
 use std::option::Option;
-use std::collections::BTreeSet;
 use strum::IntoEnumIterator;
 
-use crate::{Board, Color, Position, Tier, Stack};
-
-type Mask = BTreeSet<Position>;
+use crate::{Board, Color, Mask, MaskSet, Position, Tier, Stack};
 
 trait Pattern {
-    fn fit(&self, board: &Board) -> BTreeSet<Mask> {
-        let mut fits = BTreeSet::new();
+    fn fit(&self, board: &Board) -> MaskSet {
+        let mut fits = MaskSet::new();
         for position in Position::iter() {
             if let Some(mask) = self.fit_at(&position, &board) {
                 fits.insert(mask);
@@ -183,7 +180,7 @@ impl Pattern for DiagonalStacks {
 struct Surround(Color, Color);
 
 impl Pattern for Surround {
-    fn fit(&self, board: &Board) -> BTreeSet<Mask> {
+    fn fit(&self, board: &Board) -> MaskSet {
         let mut bases = Mask::new();
         let mut highest = Tier::First;
         for position in Position::iter() {
@@ -200,7 +197,7 @@ impl Pattern for Surround {
             }
         }
 
-        let mut fits = BTreeSet::new();
+        let mut fits = MaskSet::new();
         for base in bases.iter() {
             if let Some(mask) = self.fit_at(base, board) {
                 fits.insert(mask);

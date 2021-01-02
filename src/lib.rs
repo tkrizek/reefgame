@@ -1,5 +1,5 @@
 use crate::error::Error;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::convert::TryFrom;
 use strum::EnumIter;
 
@@ -266,6 +266,9 @@ impl Position {
         Position::from_coords(x + 1, y - 1).ok()
     }
 }
+
+type Mask = BTreeSet<Position>;
+type MaskSet = BTreeSet<Mask>;
 
 #[derive(Debug)]
 pub struct Board {
