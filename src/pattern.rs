@@ -1,10 +1,9 @@
-use std::vec::Vec;
 use std::option::Option;
 use strum::IntoEnumIterator;
 
-use crate::{Board, Color, Mask, MaskSet, Position, Tier, Stack};
+use crate::{Board, Color, board::{Mask, MaskSet}, Position, Tier, Stack};
 
-trait Pattern {
+pub trait Pattern {
     fn fit(&self, board: &Board) -> MaskSet {
         let mut fits = MaskSet::new();
         for position in Position::iter() {
@@ -24,7 +23,7 @@ trait Pattern {
         fits
     }
 
-    fn fit_at(&self, positon: &Position, board: &Board) -> Option<Mask> {
+    fn fit_at(&self, _position: &Position, _board: &Board) -> Option<Mask> {
         None
     }
     fn fit_at_90deg(&self, _position: &Position, _board: &Board) -> Option<Mask> {
@@ -40,7 +39,7 @@ trait Pattern {
 
 impl Pattern for Color {
     fn fit_at(&self, position: &Position, board: &Board) -> Option<Mask> {
-        if let Some(stack) = board.slots.get(&position) {
+        if let Some(stack) = board.get(&position) {
             if stack.color == *self {
                 return Some(btreeset!{*position});
             }
@@ -51,7 +50,7 @@ impl Pattern for Color {
 
 impl Pattern for Tier {
     fn fit_at(&self, position: &Position, board: &Board) -> Option<Mask> {
-        if let Some(stack) = board.slots.get(&position) {
+        if let Some(stack) = board.get(&position) {
             if stack.tier == *self {
                 return Some(btreeset!{*position});
             }
@@ -62,7 +61,7 @@ impl Pattern for Tier {
 
 impl Pattern for Stack {
     fn fit_at(&self, position: &Position, board: &Board) -> Option<Mask> {
-        if let Some(stack) = board.slots.get(&position) {
+        if let Some(stack) = board.get(&position) {
             if stack == self {
                 return Some(btreeset!{*position});
             }
@@ -71,12 +70,12 @@ impl Pattern for Stack {
     }
 }
 
-struct AdjacentColors(Color, Color);
+pub struct AdjacentColors(Color, Color);
 
 impl AdjacentColors {
     fn fit_colors(&self, pos1: &Position, pos2: &Position, board: &Board) -> Option<Mask> {
-        let stack1 = board.slots.get(&pos1);
-        let stack2 = board.slots.get(&pos2);
+        let stack1 = board.get(&pos1);
+        let stack2 = board.get(&pos2);
         if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
             let fit = stack1.color == self.0 && stack2.color == self.1;
             let fit_inv = stack1.color == self.1 && stack2.color == self.0;
@@ -106,12 +105,12 @@ impl Pattern for AdjacentColors {
     }
 }
 
-struct AdjacentT2(Color);
+pub struct AdjacentT2(Color);
 
 impl AdjacentT2 {
     fn fit_t2_color(&self, pos1: &Position, pos2: &Position, board: &Board) -> Option<Mask> {
-        let stack1 = board.slots.get(&pos1);
-        let stack2 = board.slots.get(&pos2);
+        let stack1 = board.get(&pos1);
+        let stack2 = board.get(&pos2);
         if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
             let stack_fit = stack1.tier == Tier::Second && stack2.tier == Tier::Second;
             let color_fit = stack1.color == self.0 && stack2.color == self.0;
@@ -141,12 +140,12 @@ impl Pattern for AdjacentT2 {
     }
 }
 
-struct DiagonalStacks(Color, Color);
+pub struct DiagonalStacks(Color, Color);
 
 impl DiagonalStacks {
     fn fit_diag_stacks(&self, pos1: &Position, pos2: &Position, board: &Board) -> Option<Mask> {
-        let stack1 = board.slots.get(&pos1);
-        let stack2 = board.slots.get(&pos2);
+        let stack1 = board.get(&pos1);
+        let stack2 = board.get(&pos2);
         if let (Some(stack1), Some(stack2)) = (stack1, stack2) {
             let stack_fit = stack1.tier >= Tier::Second && stack2.tier >= Tier::Second;
             let color_fit = stack1.color == self.0 && stack2.color == self.1;
@@ -177,14 +176,14 @@ impl Pattern for DiagonalStacks {
     }
 }
 
-struct Surround(Color, Color);
+pub struct Surround(Color, Color);
 
 impl Pattern for Surround {
     fn fit(&self, board: &Board) -> MaskSet {
         let mut bases = Mask::new();
         let mut highest = Tier::First;
         for position in Position::iter() {
-            if let Some(stack) = board.slots.get(&position) {
+            if let Some(stack) = board.get(&position) {
                 if stack.color == self.0 {
                     if stack.tier > highest {
                         bases.clear();
@@ -207,7 +206,7 @@ impl Pattern for Surround {
     }
 
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
-        if let Some(stack) = board.slots.get(pos1) {
+        if let Some(stack) = board.get(pos1) {
             if stack.color != self.0 {
                 return None;
             }
@@ -224,7 +223,7 @@ impl Pattern for Surround {
             let mut fits = Mask::new();
             for pos in surrounding.iter() {
                 if let Some(pos) = pos {
-                    if let Some(stack) = board.slots.get(&pos) {
+                    if let Some(stack) = board.get(&pos) {
                         if stack.color == self.1 {
                             fits.insert(*pos);
                         }
@@ -256,7 +255,7 @@ impl Shape for Color {
     }
 }
 
-struct Diagonal(Color);
+pub struct Diagonal(Color);
 
 impl Pattern for Diagonal {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
@@ -280,7 +279,7 @@ impl Pattern for Diagonal {
     }
 }
 
-struct Line(Color);
+pub struct Line(Color);
 
 impl Pattern for Line {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
@@ -304,7 +303,7 @@ impl Pattern for Line {
     }
 }
 
-struct Corner(Color);
+pub struct Corner(Color);
 
 impl Pattern for Corner {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
@@ -348,7 +347,7 @@ impl Pattern for Corner {
     }
 }
 
-struct Square(Color);
+pub struct Square(Color);
 
 impl Pattern for Square {
     fn fit_at(&self, pos1: &Position, board: &Board) -> Option<Mask> {
